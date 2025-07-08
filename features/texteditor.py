@@ -6,7 +6,7 @@ class TextEditor:
         self.current_line = 0
         self.cursor_position = 0
 
-    def run(self):
+    def run(self, Flag=False):
         """Run a cell in terminal for displaying the editor"""
         self.stdscr.clear()
         self.stdscr.refresh()
@@ -14,27 +14,24 @@ class TextEditor:
         while True:
             self.display_text()
             key = self.stdscr.getch()
-            self.handle_input(key)
+            self.handle_input(key, Flag)
 
-            if key == 27: # Escape key
+            if Flag == True:
                 break # Exit the editor
         
         self.save_file()
 
     def display_text(self):
 
-        self.stdscr.clear()
-
         for i, line in enumerate(self.text):
             self.stdscr.addstr(i, 0, line)
 
-        self.stdscr.move(self.current_line, self.cursor_position)
-        self.stdscr.refresh()
 
-
-    def handle_input(self, key):
+    def handle_input(self, key, Flag):
         
-        pass
+        if key == 27: # Escape key
+            Flag = True # Set a flag to exit
 
+    
     def save_file(self):
         pass

@@ -10,7 +10,7 @@ class CommandLineInterface:
         self.cursor_position = 0
 
 
-    def run(self):
+    def runner(self):
         """Run a cell in terminal for displaying the editor"""
         self.stdscr.clear()
         self.stdscr.refresh()

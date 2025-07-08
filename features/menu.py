@@ -1,4 +1,4 @@
-import time
+import curses
 from .texteditor import TextEditor  # Use relative import
 from .commandline import CommandLineInterface  # Use relative import
 
@@ -25,7 +25,7 @@ def console(stdscr):
         stdscr.addstr(0, 0, "Your main program goes here...")
         hint = hints[i % len(hints)]  # Cycle through hints
         i += 1
-        stdscr.addstr(height - 2, 0, "Use any key to check the supported commands from hints!")
+        stdscr.addstr(height - 2, 0, "Use any key to check the supported commands from hints!", curses.A_BOLD)
         stdscr.addstr(height - 1, 0, hint)
 
         stdscr.refresh()
@@ -36,10 +36,10 @@ def console(stdscr):
         elif key == 19:  # Ctrl+S
             save_file()
         elif key == 20:  # Ctrl+T
-            text_editor = TextEditor(stdscr)
+            text_editor = curses.wrapper(TextEditor)
             text_editor.run()
         elif key == 11:  # Ctrl+K
-            command_line = CommandLineInterface(stdscr)
+            command_line = curses.wrapper(CommandLineInterface)
             command_line.run()
 
 def save_file():
