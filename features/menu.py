@@ -36,10 +36,10 @@ def console(stdscr):
         elif key == 19:  # Ctrl+S
             save_file()
         elif key == 20:  # Ctrl+T
-            text_editor = curses.wrapper(TextEditor)
+            text_editor = TextEditor()
             text_editor.run()
         elif key == 11:  # Ctrl+K
-            command_line = curses.wrapper(CommandLineInterface)
+            command_line = CommandLineInterface()
             command_line.run()
 
 def save_file():
