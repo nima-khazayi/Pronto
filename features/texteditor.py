@@ -137,15 +137,14 @@ class TextEditor:
         
         elif self.cursor_position == 0:
             self.current_line -= 1
-            self.cursor_position = self.length[-2]
+            self.cursor_position = self.length[self.current_line - 8]
             self.length.pop()
             self.movement()
             
         else:
             self.cursor_position -= 1
             self.movement()
-            self.length.append(self.length[-1] - 1)
-            self.length.pop(-2)
+            self.length[self.current_line - 8] = self.length[self.current_line - 8] - 1
 
     def enter(self):
         self.text += "\n"
