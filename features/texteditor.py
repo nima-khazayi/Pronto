@@ -93,7 +93,6 @@ class TextEditor:
     def movement(self):
         self.stdscr.move(self.current_line, self.cursor_position + 1)
 
-
     def arrows(self, key):
         if key == curses.KEY_UP:
             if self.current_line > 8:
@@ -171,3 +170,5 @@ class TextEditor:
         self.stdscr.clrtoeol()
         self.stdscr.refresh()
 
+    def open_file(self):
+        pass
