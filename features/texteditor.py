@@ -97,13 +97,13 @@ class TextEditor:
 
             elif key == curses.KEY_LEFT:
                 pass
-
-            elif key == curses.KEY_RIGHT:
-                self.cursor_position += 1
-                self.movement()
-
-            elif key == curses.KEY_DOWN:
+            
+            elif key == curses.KEY_DOWN and (len(self.length) > 2 ^ self.length[-1] == 0):
                 self.current_line += 1
+                self.movement()
+            
+            elif key == curses.KEY_RIGHT and self.length[-1] != 0:
+                self.cursor_position += 1
                 self.movement()
 
         elif self.current_line == 8:
@@ -114,22 +114,32 @@ class TextEditor:
                 self.cursor_position -= 1
                 self.movement()
 
+            elif key == curses.KEY_RIGHT and self.cursor_position <= self.length[0]:
+                self.cursor_position += 1
+                self.movement()
+
+            elif key == curses.KEY_DOWN and len(self.length) > 1:
+                self.current_line += 1
+                self.movement()
+
 
 
     def remove(self):
         if self.cursor_position == 0 and self.current_line == 8:
-            pass
+            self.length.pop()
+            self.length.append(0)
         
         elif self.cursor_position == 0:
             self.current_line -= 1
+            self.cursor_position = self.length[-2]
             self.length.pop()
-            self.cursor_position = self.length[-1]
             self.movement()
             
         else:
             self.cursor_position -= 1
             self.movement()
-
+            self.length.append(self.length[-1] - 1)
+            self.length.pop(-2)
 
     def enter(self):
         self.length.append(0)
