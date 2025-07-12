@@ -1,5 +1,6 @@
 import curses
 import pyfiglet
+import time
 
 class TextEditor:
 
@@ -61,12 +62,18 @@ class TextEditor:
         elif key in (127, curses.KEY_BACKSPACE):
             self.remove()
 
+        elif key == 6:
+            self.save_file()
+
         elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
             self.arrows(key)
             
         else:
-            self.cursor_position += 1
+            if self.cursor_position + 2 == self.width:
+                self.enter()
+
             self.text += chr(key)
+            self.cursor_position += 1
             self.display_text()
             self.length.append(self.cursor_position)
             self.length.pop(-2)
@@ -84,45 +91,44 @@ class TextEditor:
 
         
     def movement(self):
-        if self.cursor_position + 2 == self.width:
-            self.positioning(curses.KEY_ENTER)
-
         self.stdscr.move(self.current_line, self.cursor_position + 1)
 
 
     def arrows(self, key):
-        if self.cursor_position == 0 and self.current_line == 8:
-            if key == curses.KEY_UP:
-                pass
+        if key == curses.KEY_UP:
+            if self.current_line > 8:
+                self.current_line -= 1
+                prev_line_len = self.length[self.current_line - 8]
+                self.cursor_position = min(self.cursor_position, prev_line_len)
+                self.movement()
 
-            elif key == curses.KEY_LEFT:
-                pass
-            
-            elif key == curses.KEY_DOWN and (len(self.length) > 2 ^ self.length[-1] == 0):
+        elif key == curses.KEY_DOWN:
+            if self.current_line - 8 < len(self.length) - 1:
                 self.current_line += 1
-                self.movement()
-            
-            elif key == curses.KEY_RIGHT and self.length[-1] != 0:
-                self.cursor_position += 1
+                next_line_len = self.length[self.current_line - 8]
+                self.cursor_position = min(self.cursor_position, next_line_len)
                 self.movement()
 
-        elif self.current_line == 8:
-            if key == curses.KEY_UP:
-                pass
-
-            elif key == curses.KEY_LEFT:
+        elif key == curses.KEY_LEFT:
+            if self.cursor_position > 0:
                 self.cursor_position -= 1
                 self.movement()
+            elif self.current_line > 8:
+                self.current_line -= 1
+                self.cursor_position = self.length[self.current_line - 8]
+                self.movement()
 
-            elif key == curses.KEY_RIGHT and self.cursor_position <= self.length[0]:
+        elif key == curses.KEY_RIGHT:
+            line_len = self.length[self.current_line - 8]
+            if self.cursor_position < line_len:
                 self.cursor_position += 1
                 self.movement()
-
-            elif key == curses.KEY_DOWN and len(self.length) > 1:
+            elif self.current_line - 8 < len(self.length) - 1:
                 self.current_line += 1
+                self.cursor_position = 0
                 self.movement()
 
-
+        
 
     def remove(self):
         if self.cursor_position == 0 and self.current_line == 8:
@@ -142,11 +148,27 @@ class TextEditor:
             self.length.pop(-2)
 
     def enter(self):
+        self.text += "\n"
         self.length.append(0)
         self.current_line += 1
         self.cursor_position = 0
 
 
     def save_file(self):
-        pass
+        file = open("file.txt", "w")
+        file.write(self.text)
+
+        # Initialize color support
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+
+        # Display the green message
+        self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
+
+        # Refresh the screen to show the changes
+        self.stdscr.refresh()
+        time.sleep(1.5)
+        self.stdscr.move(self.height - 2, 0)
+        self.stdscr.clrtoeol()
+        self.stdscr.refresh()
 

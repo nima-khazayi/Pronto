@@ -7,7 +7,7 @@ def console(stdscr):
     stdscr.clear()
     
     hints = [
-        "Hint: Ctrl+S to save.",
+        "Hint: Ctrl+F to save.",
         "Hint: Ctrl+T to open the text editor.",
         "Hint: Ctrl+K to open the command line.",
         "Hint: Esc to go back from editor/command line.",
@@ -33,15 +33,9 @@ def console(stdscr):
 
         if key == ord('q'):
             break
-        elif key == 19:  # Ctrl+S
-            save_file()
         elif key == 20:  # Ctrl+T
             text_editor = TextEditor()
             text_editor.run()
         elif key == 11:  # Ctrl+K
             command_line = CommandLineInterface()
             command_line.run()
-
-def save_file():
-    
-    print("File saved!")  # Placeholder for actual saving logic
