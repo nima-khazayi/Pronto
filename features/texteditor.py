@@ -68,6 +68,8 @@ class TextEditor:
             self.cursor_position += 1
             self.text += chr(key)
             self.display_text()
+            self.length.append(self.cursor_position)
+            self.length.pop(-2)
             
         # Clear previous position display
         self.stdscr.move(self.height - 1, 0)
@@ -93,10 +95,6 @@ class TextEditor:
             if key == curses.KEY_UP:
                 pass
 
-            elif key == curses.KEY_DOWN:
-                self.current_line += 1
-                self.movement()
-
             elif key == curses.KEY_LEFT:
                 pass
 
@@ -104,33 +102,18 @@ class TextEditor:
                 self.cursor_position += 1
                 self.movement()
 
-        elif self.cursor_position == 0 or self.cursor_position + 1 == self.text:
-            if curses.KEY_LEFT:
-                self.current_line -= 1
-                self.cursor_position = self.length
-                self.movement()
-
-            elif curses.KEY_RIGHT:
-                self.current_line += 1
-                self.cursor_position = 0
-                self.movement()
-
-        else:
-            if key == curses.KEY_UP:
-                self.current_line -= 1
-                self.movement()
-
             elif key == curses.KEY_DOWN:
                 self.current_line += 1
                 self.movement()
+
+        elif self.current_line == 8:
+            if key == curses.KEY_UP:
+                pass
 
             elif key == curses.KEY_LEFT:
                 self.cursor_position -= 1
                 self.movement()
 
-            elif key == curses.KEY_RIGHT:
-                self.cursor_position += 1
-                self.movement()
 
 
     def remove(self):
@@ -139,8 +122,8 @@ class TextEditor:
         
         elif self.cursor_position == 0:
             self.current_line -= 1
-            self.cursor_position = self.length[-1]
             self.length.pop()
+            self.cursor_position = self.length[-1]
             self.movement()
             
         else:
@@ -149,11 +132,9 @@ class TextEditor:
 
 
     def enter(self):
+        self.length.append(0)
         self.current_line += 1
         self.cursor_position = 0
-        self.length.append(len(self.text))
-        self.length.append(self.length[-1] - self.length[-2])
-        self.length.pop(-2)
 
 
     def save_file(self):
