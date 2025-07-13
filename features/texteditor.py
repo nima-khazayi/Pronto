@@ -10,104 +10,149 @@ class TextEditor:
         self.current_line = 8
         self.cursor_position = 0
         self.length = [""]
+        self.line_types = ["soft"]  # track line source
+        self.final_string = []
         self.height, self.width = self.stdscr.getmaxyx()
+        self.prev_line_count = 1
 
     def run(self):
-        """Run a cell in terminal for displaying the editor"""
         self.stdscr.clear()
         self.stdscr.refresh()
 
         while True:
-
             message = pyfiglet.figlet_format("TextEditor", font="slant")
             self.stdscr.addstr(0, 1, message)
             self.stdscr.addstr(6, 2, "     ---------------------------      ")
             self.movement()
             key = self.stdscr.getch()
             if self.handle_input(key):
-                break # Exit the editor
-
+                break
             self.stdscr.refresh()
 
     def display_text(self):
-
         for i in range(len(self.length)):
             for char in (self.length[i]):
                 self.stdscr.addstr(self.current_line, self.cursor_position, char)
 
-
     def handle_input(self, key):
-        
-        if key == 27: # Escape key
-            return True # Set a flag to exit
-        
-        elif key == 127 or key == curses.KEY_BACKSPACE:
-            if self.cursor_position != 0:
-                self.stdscr.addstr(self.current_line, self.cursor_position, " ")
-                self.length[self.current_line - 8] = self.length[self.current_line - 8][:-1]
-                self.positioning(key)
-                self.stdscr.refresh()
-
-            else:
-                self.positioning(key)
-                self.stdscr.refresh()
-
-        else:
-            self.positioning(key)
-
-    def positioning(self, key=None):
-        
-        if key in (10, curses.KEY_ENTER):
+        if key == 27:
+            return True
+        elif key in (10, curses.KEY_ENTER):
             self.enter()
-        
         elif key in (127, curses.KEY_BACKSPACE):
             self.remove()
-
         elif key == 6:
             self.save_file()
-
         elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
             self.arrows(key)
-            
         else:
             if self.cursor_position + 2 == self.width:
-                self.enter()
+                self.length.append("")
+                self.line_types.append("soft")
+                self.current_line += 1
+                self.cursor_position = 0
 
             self.length[self.current_line - 8] += chr(key)
             self.cursor_position += 1
-            self.display_text()
+            self.redraw_text()
 
-            
-        # Clear previous position display
+        # Show position
         self.stdscr.move(self.height - 1, 0)
         self.stdscr.clrtoeol()
-        
-        # Draw new position
         position = f"Row: {self.current_line - 7}, Col: {self.cursor_position + 1}"
         self.stdscr.addstr(self.height - 1, self.width // 2 - len(position) // 2, position, curses.A_BOLD)
         self.stdscr.refresh()
-
         self.movement()
 
-        
-    def movement(self):
-        self.stdscr.move(self.current_line, self.cursor_position + 1)
+    def remove(self):
+        line_index = self.current_line - 8
+
+        if self.cursor_position == 0:
+            if self.current_line == 8 and len(self.length[line_index]) == 0:
+                return
+            if line_index > 0:
+                self.cursor_position = len(self.length[line_index - 1])
+                self.length[line_index - 1] += self.length[line_index]
+                self.length.pop(line_index)
+                self.line_types.pop(line_index)
+                self.current_line -= 1
+        else:
+            line = self.length[line_index]
+            self.length[line_index] = line[:self.cursor_position - 1] + line[self.cursor_position:]
+            self.cursor_position -= 1
+
+            # Shift characters up from next line only if it was soft-wrapped
+            i = line_index
+            while i + 1 < len(self.length):
+                if (self.line_types[i + 1] == "soft" and
+                    len(self.length[i]) < self.width - 2 and
+                    len(self.length[i + 1]) > 0):
+                    self.length[i] += self.length[i + 1][0]
+                    self.length[i + 1] = self.length[i + 1][1:]
+                    i += 1
+                else:
+                    break
+
+            # Remove empty soft lines
+            i = 0
+            while i < len(self.length):
+                if i < len(self.line_types) and self.length[i] == "" and self.line_types[i] == "soft":
+                    self.length.pop(i)
+                    self.line_types.pop(i)
+                else:
+                    i += 1
+
+        self.redraw_text()
+        self.movement()
+
+    def redraw_text(self):
+        current_line_count = len(self.length)
+        for i in range(max(self.prev_line_count, current_line_count)):
+            self.stdscr.move(8 + i, 0)
+            self.stdscr.clrtoeol()
+            if i < current_line_count:
+                line = self.length[i]
+                padded_line = line + " " * (self.width - len(line) - 1)
+                self.stdscr.addstr(8 + i, 1, padded_line[:self.width - 1])
+        self.prev_line_count = current_line_count
+
+    def enter(self):
+        self.final_string.append(self.length[self.current_line - 8])
+        self.final_string[self.current_line - 8] += "\n"
+        self.length.append("")
+        self.line_types.append("hard")
+        self.current_line += 1
+        self.cursor_position = 0
+
+    def save_file(self):
+        with open("file.txt", "w") as file:
+            for line in self.final_string:
+                self.text += line
+            file.write(self.text)
+
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
+        self.stdscr.refresh()
+        time.sleep(1.5)
+        self.stdscr.move(self.height - 2, 0)
+        self.stdscr.clrtoeol()
+        self.stdscr.refresh()
+
+    def open_file(self):
+        pass
 
     def arrows(self, key):
         if key == curses.KEY_UP:
             if self.current_line > 8:
                 self.current_line -= 1
-                prev_line_len = len(self.length[self.current_line - 8])
-                self.cursor_position = min(self.cursor_position, prev_line_len)
+                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
                 self.movement()
-
         elif key == curses.KEY_DOWN:
             if self.current_line - 8 < len(self.length) - 1:
                 self.current_line += 1
-                next_line_len = len(self.length[self.current_line - 8])
-                self.cursor_position = min(self.cursor_position, next_line_len)
+                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
                 self.movement()
-
         elif key == curses.KEY_LEFT:
             if self.cursor_position > 0:
                 self.cursor_position -= 1
@@ -116,7 +161,6 @@ class TextEditor:
                 self.current_line -= 1
                 self.cursor_position = len(self.length[self.current_line - 8])
                 self.movement()
-
         elif key == curses.KEY_RIGHT:
             line_len = len(self.length[self.current_line - 8])
             if self.cursor_position < line_len:
@@ -127,54 +171,5 @@ class TextEditor:
                 self.cursor_position = 0
                 self.movement()
 
-        
-
-    def remove(self):
-        if self.cursor_position == 0 and self.current_line == 8:
-            pass
-        
-        elif self.cursor_position == 0:
-            if len(self.length[self.current_line - 8]) == 0:
-                self.length.pop(self.current_line - 8)
-            self.current_line -= 1
-            self.cursor_position = len(self.length[self.current_line - 8])
-            self.movement()
-            
-        else:
-            self.cursor_position -= 1
-            self.movement()
-            self.length[self.current_line - 8] = self.length[self.current_line - 8][:-1]
-
-            
-
-    def enter(self):
-        self.length[self.current_line - 8] += "\n"
-        self.length.append("")
-        self.current_line += 1
-        self.cursor_position = 0
-
-
-    def save_file(self):
-        file = open("file.txt", "w")
-        for i in range(len(self.length)):
-            for char in self.length[i]:
-                self.text += char
-
-        file.write(self.text)
-
-        # Initialize color support
-        curses.start_color()
-        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-
-        # Display the green message
-        self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
-
-        # Refresh the screen to show the changes
-        self.stdscr.refresh()
-        time.sleep(1.5)
-        self.stdscr.move(self.height - 2, 0)
-        self.stdscr.clrtoeol()
-        self.stdscr.refresh()
-
-    def open_file(self):
-        pass
+    def movement(self):
+        self.stdscr.move(self.current_line, self.cursor_position + 1)
