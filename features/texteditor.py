@@ -27,9 +27,12 @@ class TextEditor:
             key = self.stdscr.getch()
             if self.handle_input(key):
                 break
+
+            self.automation()
             self.stdscr.refresh()
 
     def display_text(self):
+
         for i in range(len(self.length)):
             for char in (self.length[i]):
                 self.stdscr.addstr(self.current_line, self.cursor_position, char)
@@ -37,14 +40,19 @@ class TextEditor:
     def handle_input(self, key):
         if key == 27:
             return True
+        
         elif key in (10, curses.KEY_ENTER):
             self.enter()
+
         elif key in (127, curses.KEY_BACKSPACE):
             self.remove()
+
         elif key == 6:
             self.save_file()
+
         elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
             self.arrows(key)
+
         else:
             if self.cursor_position + 2 == self.width:
                 self.length.append("")
@@ -52,7 +60,12 @@ class TextEditor:
                 self.current_line += 1
                 self.cursor_position = 0
 
-            self.length[self.current_line - 8] += chr(key)
+            if len(self.length[self.current_line - 8]) > 0:
+                self.length[self.current_line - 8] = self.length[self.current_line - 8][:self.cursor_position] + chr(key) + self.length[self.current_line - 8][self.cursor_position:]
+
+            else:
+                self.length[self.current_line - 8] += chr(key)
+
             self.cursor_position += 1
             self.redraw_text()
 
@@ -69,7 +82,8 @@ class TextEditor:
 
         if self.cursor_position == 0:
             if self.current_line == 8 and len(self.length[line_index]) == 0:
-                return
+                pass
+            
             if line_index > 0:
                 self.cursor_position = len(self.length[line_index - 1])
                 self.length[line_index - 1] += self.length[line_index]
@@ -120,11 +134,23 @@ class TextEditor:
         self.final_string.append(self.length[self.current_line - 8])
         self.final_string[self.current_line - 8] += "\n"
         self.length.append("")
+
+        if len(self.length[self.current_line - 8][self.cursor_position:]) > 0:
+            new_len = len(self.length[(self.current_line - 8):])
+            for index in range(1, new_len):
+                self.length[new_len - index] = self.length[new_len - index - 1]
+
+            self.length[self.current_line - 8 + 1] = self.length[self.current_line - 8][self.cursor_position:]
+            self.length[self.current_line - 8] = self.length[self.current_line - 8][:self.cursor_position]
+            
+
         self.line_types.append("hard")
         self.current_line += 1
         self.cursor_position = 0
+        self.redraw_text()
 
     def save_file(self):
+
         with open("file.txt", "w") as file:
             for line in self.final_string:
                 self.text += line
@@ -143,29 +169,36 @@ class TextEditor:
         pass
 
     def arrows(self, key):
+
         if key == curses.KEY_UP:
             if self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
                 self.movement()
+
         elif key == curses.KEY_DOWN:
             if self.current_line - 8 < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
                 self.movement()
+
         elif key == curses.KEY_LEFT:
             if self.cursor_position > 0:
                 self.cursor_position -= 1
                 self.movement()
+
             elif self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = len(self.length[self.current_line - 8])
                 self.movement()
+
         elif key == curses.KEY_RIGHT:
             line_len = len(self.length[self.current_line - 8])
+
             if self.cursor_position < line_len:
                 self.cursor_position += 1
                 self.movement()
+
             elif self.current_line - 8 < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = 0
@@ -173,3 +206,11 @@ class TextEditor:
 
     def movement(self):
         self.stdscr.move(self.current_line, self.cursor_position + 1)
+
+
+    def automation(self):
+        if len(self.length) == 0:
+            self.length = [""]
+
+    def new_line(self):
+        pass
