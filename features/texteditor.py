@@ -11,7 +11,6 @@ class TextEditor:
         self.cursor_position = 0
         self.length = [""]
         self.line_types = ["soft"]  # track line source
-        self.final_string = []
         self.height, self.width = self.stdscr.getmaxyx()
         self.prev_line_count = 1
 
@@ -131,17 +130,16 @@ class TextEditor:
         self.prev_line_count = current_line_count
 
     def enter(self):
-        self.final_string.append(self.length[self.current_line - 8])
-        self.final_string[self.current_line - 8] += "\n"
         self.length.append("")
 
         if len(self.length[self.current_line - 8][self.cursor_position:]) > 0:
             new_len = len(self.length[(self.current_line - 8):])
-            for index in range(1, new_len):
-                self.length[new_len - index] = self.length[new_len - index - 1]
+            for index in range(new_len -1, 0, -1):
+                self.length[self.current_line - 8 + index] = self.length[self.current_line - 8 + index - 1]
 
             self.length[self.current_line - 8 + 1] = self.length[self.current_line - 8][self.cursor_position:]
             self.length[self.current_line - 8] = self.length[self.current_line - 8][:self.cursor_position]
+            self.line_types.append("hard")
             
 
         self.line_types.append("hard")
@@ -152,8 +150,12 @@ class TextEditor:
     def save_file(self):
 
         with open("file.txt", "w") as file:
-            for line in self.final_string:
+            counter = 0
+            for line in self.length:
                 self.text += line
+                counter += 1
+                if counter != len(self.length):
+                    self.text += "\n"
             file.write(self.text)
 
         curses.start_color()
