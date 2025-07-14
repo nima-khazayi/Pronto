@@ -17,12 +17,17 @@ class TextEditor:
     def run(self):
         self.stdscr.clear()
         self.stdscr.refresh()
+        self.stdscr.scrollok(True)
 
         while True:
             message = pyfiglet.figlet_format("TextEditor", font="slant")
             self.stdscr.addstr(0, 1, message)
             self.stdscr.addstr(6, 2, "     ---------------------------      ")
+            self.redraw_text()
             self.movement()
+            if self.current_line == self.height - 2:
+                self.new_line()
+
             key = self.stdscr.getch()
             if self.handle_input(key):
                 break
@@ -120,8 +125,9 @@ class TextEditor:
 
     def redraw_text(self):
         current_line_count = len(self.length)
+        text_start_line = 8
         for i in range(max(self.prev_line_count, current_line_count)):
-            self.stdscr.move(8 + i, 0)
+            self.stdscr.move(text_start_line + i, 0)
             self.stdscr.clrtoeol()
             if i < current_line_count:
                 line = self.length[i]
@@ -215,4 +221,13 @@ class TextEditor:
             self.length = [""]
 
     def new_line(self):
-        pass
+        self.stdscr.resize(self.height + 1, self.width)
+        self.height, self.width = self.stdscr.getmaxyx()
+        self.stdscr.clear()
+        self.redraw_text()
+        self.cursor_position = 0
+        self.current_line = len(self.length) + 7
+        self.movement()
+        self.stdscr.refresh()
+
+
