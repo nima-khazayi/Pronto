@@ -23,9 +23,9 @@ class TextEditor:
             message = pyfiglet.figlet_format("TextEditor", font="slant")
             self.stdscr.addstr(0, 1, message)
             self.stdscr.addstr(6, 2, "     ---------------------------      ")
-            self.redraw_text()
+            self.shift_text()
             self.movement()
-            if self.current_line == self.height - 2:
+            if self.current_line == self.height - 3:
                 self.new_line()
 
             key = self.stdscr.getch()
@@ -36,7 +36,6 @@ class TextEditor:
             self.stdscr.refresh()
 
     def display_text(self):
-
         for i in range(len(self.length)):
             for char in (self.length[i]):
                 self.stdscr.addstr(self.current_line, self.cursor_position, char)
@@ -64,25 +63,25 @@ class TextEditor:
                 self.current_line += 1
                 self.cursor_position = 0
 
-            if len(self.length[self.current_line - 8]) > 0:
-                self.length[self.current_line - 8] = self.length[self.current_line - 8][:self.cursor_position] + chr(key) + self.length[self.current_line - 8][self.cursor_position:]
+            if len(self.length[self.current_line]) > 0:
+                self.length[self.current_line] = self.length[self.current_line][:self.cursor_position] + chr(key) + self.length[self.current_line][self.cursor_position:]
 
             else:
-                self.length[self.current_line - 8] += chr(key)
+                self.length[self.current_line] += chr(key)
 
             self.cursor_position += 1
-            self.redraw_text()
+            self.shift_text()
 
         # Show position
         self.stdscr.move(self.height - 1, 0)
         self.stdscr.clrtoeol()
-        position = f"Row: {self.current_line - 7}, Col: {self.cursor_position + 1}"
+        position = f"Row: {self.current_line + 1}, Col: {self.cursor_position + 1}"
         self.stdscr.addstr(self.height - 1, self.width // 2 - len(position) // 2, position, curses.A_BOLD)
         self.stdscr.refresh()
         self.movement()
 
     def remove(self):
-        line_index = self.current_line - 8
+        line_index = self.current_line
 
         if self.cursor_position == 0:
             if self.current_line == 8 and len(self.length[line_index]) == 0:
@@ -120,7 +119,7 @@ class TextEditor:
                 else:
                     i += 1
 
-        self.redraw_text()
+        self.shift_text()
         self.movement()
 
     def redraw_text(self):
@@ -138,23 +137,113 @@ class TextEditor:
     def enter(self):
         self.length.append("")
 
-        if len(self.length[self.current_line - 8][self.cursor_position:]) > 0:
-            new_len = len(self.length[(self.current_line - 8):])
+        if len(self.length[self.current_line][self.cursor_position:]) > 0:
+            new_len = len(self.length[(self.current_line):])
             for index in range(new_len -1, 0, -1):
-                self.length[self.current_line - 8 + index] = self.length[self.current_line - 8 + index - 1]
+                self.length[self.current_line + index] = self.length[self.current_line + index - 1]
 
-            self.length[self.current_line - 8 + 1] = self.length[self.current_line - 8][self.cursor_position:]
-            self.length[self.current_line - 8] = self.length[self.current_line - 8][:self.cursor_position]
+            self.length[self.current_line + 1] = self.length[self.current_line][self.cursor_position:]
+            self.length[self.current_line] = self.length[self.current_line][:self.cursor_position]
             self.line_types.append("hard")
             
 
         self.line_types.append("hard")
         self.current_line += 1
         self.cursor_position = 0
-        self.redraw_text()
+        self.shift_text()
+
+    def arrows(self, key):
+
+        if key == curses.KEY_UP:
+            if self.current_line > 8:
+                self.current_line -= 1
+                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
+                self.movement()
+
+        elif key == curses.KEY_DOWN:
+            if self.current_line < len(self.length) - 1:
+                self.current_line += 1
+                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
+                self.movement()
+
+        elif key == curses.KEY_LEFT:
+            if self.cursor_position > 0:
+                self.cursor_position -= 1
+                self.movement()
+
+            elif self.current_line > 8:
+                self.current_line -= 1
+                self.cursor_position = len(self.length[self.current_line])
+                self.movement()
+
+        elif key == curses.KEY_RIGHT:
+            line_len = len(self.length[self.current_line])
+
+            if self.cursor_position < line_len:
+                self.cursor_position += 1
+                self.movement()
+
+            elif self.current_line < len(self.length) - 1:
+                self.current_line += 1
+                self.cursor_position = 0
+                self.movement()
+
+    def movement(self):
+        self.height, self.width = self.stdscr.getmaxyx()
+        text_start_line = 8
+        text_end_line = self.height - 3
+        visible_lines = text_end_line - text_start_line
+
+        total_lines = len(self.length)
+        start_index = max(0, total_lines - visible_lines)
+
+        # Convert current_line (buffer index) to screen position
+        screen_line = text_start_line + (self.current_line - start_index)
+        screen_line = min(max(screen_line, text_start_line), text_end_line - 1)
+
+        cursor_x = min(self.cursor_position + 1, self.width - 1)
+        self.stdscr.move(screen_line, cursor_x)
+
+
+    def automation(self):
+        if len(self.length) == 0:
+            self.length = [""]
+
+    def new_line(self):
+        self.length.append("")
+        self.line_types.append("hard")
+        self.cursor_position = 0
+        self.current_line = len(self.length) - 1  # buffer index
+        self.shift_text()
+        self.movement()
+        self.stdscr.refresh()
+
+
+    def shift_text(self):
+        self.height, self.width = self.stdscr.getmaxyx()
+        text_start_line = 8
+        text_end_line = self.height - 3
+        visible_lines = text_end_line - text_start_line
+
+        total_lines = len(self.length)
+        start_index = max(0, total_lines - visible_lines)
+
+        # Clear visible area
+        for i in range(visible_lines):
+            screen_line = text_start_line + i
+            self.stdscr.move(screen_line, 0)
+            self.stdscr.clrtoeol()
+
+            if start_index + i < total_lines:
+                line = self.length[start_index + i]
+                self.stdscr.addstr(screen_line, 1, line[:self.width - 2])
+
+        # Adjust current_line to stay within visible range
+        self.current_line = len(self.length) - 1
+        self.prev_line_count = total_lines
+
 
     def save_file(self):
-
         with open("file.txt", "w") as file:
             counter = 0
             for line in self.length:
@@ -176,58 +265,8 @@ class TextEditor:
     def open_file(self):
         pass
 
-    def arrows(self, key):
 
-        if key == curses.KEY_UP:
-            if self.current_line > 8:
-                self.current_line -= 1
-                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
-                self.movement()
-
-        elif key == curses.KEY_DOWN:
-            if self.current_line - 8 < len(self.length) - 1:
-                self.current_line += 1
-                self.cursor_position = min(self.cursor_position, len(self.length[self.current_line - 8]))
-                self.movement()
-
-        elif key == curses.KEY_LEFT:
-            if self.cursor_position > 0:
-                self.cursor_position -= 1
-                self.movement()
-
-            elif self.current_line > 8:
-                self.current_line -= 1
-                self.cursor_position = len(self.length[self.current_line - 8])
-                self.movement()
-
-        elif key == curses.KEY_RIGHT:
-            line_len = len(self.length[self.current_line - 8])
-
-            if self.cursor_position < line_len:
-                self.cursor_position += 1
-                self.movement()
-
-            elif self.current_line - 8 < len(self.length) - 1:
-                self.current_line += 1
-                self.cursor_position = 0
-                self.movement()
-
-    def movement(self):
-        self.stdscr.move(self.current_line, self.cursor_position + 1)
-
-
-    def automation(self):
-        if len(self.length) == 0:
-            self.length = [""]
-
-    def new_line(self):
-        self.stdscr.resize(self.height + 1, self.width)
-        self.height, self.width = self.stdscr.getmaxyx()
-        self.stdscr.clear()
-        self.redraw_text()
-        self.cursor_position = 0
-        self.current_line = len(self.length) + 7
-        self.movement()
-        self.stdscr.refresh()
+        
+        
 
 
