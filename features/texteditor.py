@@ -26,7 +26,7 @@ class TextEditor:
             self.shift_text()
             self.movement()
             if self.current_line == self.height - 3:
-                self.new_line()
+                self.enter()
 
             key = self.stdscr.getch()
             if self.handle_input(key):
@@ -35,9 +35,12 @@ class TextEditor:
             self.automation()
             self.stdscr.refresh()
 
-    def display_text(self):
-        for i in range(len(self.length)):
-            for char in (self.length[i]):
+    def display_text(self, string=None):
+        if string is None:
+            string = self.length
+
+        for i in range(len(string)):
+            for char in (string[i]):
                 self.stdscr.addstr(self.current_line, self.cursor_position, char)
 
     def handle_input(self, key):
@@ -52,6 +55,11 @@ class TextEditor:
 
         elif key == 6:
             self.save_file()
+
+        elif key == 9:
+            self.cursor_position += 4
+            self.length[self.current_line] += "    "
+            self.movement()
 
         elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
             self.arrows(key)
@@ -148,9 +156,16 @@ class TextEditor:
             
 
         self.line_types.append("hard")
-        self.current_line += 1
+        if self.current_line == self.height - 3:
+            self.current_line = len(self.length) - 1  # buffer index
+
+        else:
+            self.current_line += 1
+
         self.cursor_position = 0
         self.shift_text()
+        self.movement()
+        self.stdscr.refresh()
 
     def arrows(self, key):
 
@@ -209,15 +224,6 @@ class TextEditor:
         if len(self.length) == 0:
             self.length = [""]
 
-    def new_line(self):
-        self.length.append("")
-        self.line_types.append("hard")
-        self.cursor_position = 0
-        self.current_line = len(self.length) - 1  # buffer index
-        self.shift_text()
-        self.movement()
-        self.stdscr.refresh()
-
 
     def shift_text(self):
         self.height, self.width = self.stdscr.getmaxyx()
@@ -244,22 +250,43 @@ class TextEditor:
 
 
     def save_file(self):
-        with open("file.txt", "w") as file:
-            counter = 0
-            for line in self.length:
-                self.text += line
-                counter += 1
-                if counter != len(self.length):
-                    self.text += "\n"
-            file.write(self.text)
 
+        filename = ""
         curses.start_color()
         curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        self.stdscr.addstr(self.height - 2, 0, "Enter your file name -> ", curses.color_pair(1))
+        self.stdscr.move(self.height - 2, 24)
+        while True:
+            key = self.stdscr.getch()
+            
+            if key in (10, curses.KEY_ENTER):
+                with open(filename, "w") as file:
+                    counter = 0
+                    for line in self.length:
+                        self.text += line
+                        counter += 1
+                        if counter != len(self.length):
+                            self.text += "\n"
+                    file.write(self.text)
+                    break
+
+            elif key in (127, curses.KEY_BACKSPACE):
+                pass
+
+            else:
+                filename += chr(key)
+                self.current_line = self.height - 2
+                self.cursor_position = 24
+                for i in range(len(filename)):
+                    self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
+
+        
         self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
         self.stdscr.refresh()
         time.sleep(1.5)
         self.stdscr.move(self.height - 2, 0)
         self.stdscr.clrtoeol()
+        self.redraw_text()
         self.stdscr.refresh()
 
     def open_file(self):
