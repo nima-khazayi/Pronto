@@ -7,7 +7,7 @@ class TextEditor:
     def __init__(self):
         self.stdscr = curses.initscr()
         self.text = ""
-        self.current_line = 8
+        self.current_line = 0
         self.cursor_position = 0
         self.length = [""]
         self.line_types = ["soft"]  # track line source
@@ -65,21 +65,30 @@ class TextEditor:
         elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
             self.arrows(key)
 
-        else:
-            if self.cursor_position + 2 == self.width:
-                self.length.append("")
-                self.line_types.append("soft")
-                self.current_line += 1
-                self.cursor_position = 0
-
-            if len(self.length[self.current_line]) > 0:
+        else:   
+            if len(self.length[self.current_line][self.cursor_position:]) > 0:
+                if len(self.length[self.current_line]) + 2 >= self.width:
+                    # We should check if we are at last line or not,
+                    # if not we should check if the next line has enough space or not,
+                    # if not then check if it's soft or not
+                    # if not create another empty line
+                    self.length.append("")
+                    self.line_types.append("soft")
+                    self.length[-1] += self.length[-2][-1]
+                    self.length[-2] = self.length[-2][:-1]
                 self.length[self.current_line] = self.length[self.current_line][:self.cursor_position] + chr(key) + self.length[self.current_line][self.cursor_position:]
 
             else:
+                if self.cursor_position + 2 >= self.width:
+                    self.length.append("")
+                    self.line_types.append("soft")
+                    self.current_line += 1
+                    self.cursor_position = 0
                 self.length[self.current_line] += chr(key)
 
             self.cursor_position += 1
             self.shift_text()
+            self.movement()
 
         # Show position
         self.stdscr.move(self.height - 1, 0)
@@ -160,11 +169,11 @@ class TextEditor:
             
 
         self.line_types.append("hard")
-        # if self.current_line == self.height - 3:
-            # self.current_line = len(self.length) - 1  # buffer index
+        if self.current_line == self.height - 3:
+            self.current_line = len(self.length) - 1  # buffer index
 
-        # else:
-        self.current_line += 1
+        else:
+            self.current_line += 1
 
         self.cursor_position = 0
         self.shift_text()
@@ -177,35 +186,37 @@ class TextEditor:
             if self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
-                self.cursor()
+                
 
         elif key == curses.KEY_DOWN:
             if self.current_line < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
-                self.cursor()
+                
 
         elif key == curses.KEY_LEFT:
             if self.cursor_position > 0:
                 self.cursor_position -= 1
-                self.cursor()
+                
 
             elif self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = len(self.length[self.current_line])
-                self.cursor()
+                
 
         elif key == curses.KEY_RIGHT:
             line_len = len(self.length[self.current_line])
 
             if self.cursor_position < line_len:
                 self.cursor_position += 1
-                self.cursor()
+            
 
             elif self.current_line < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = 0
-                self.cursor()
+                
+        self.shift_text()
+        self.movement()
 
     # Always should be in the right place to type
     def movement(self):
@@ -221,7 +232,7 @@ class TextEditor:
         screen_line = text_start_line + (self.current_line - start_index)
         screen_line = min(max(screen_line, text_start_line), text_end_line - 1)
 
-        cursor_x = min(self.cursor_position + 1, self.width - 1)
+        cursor_x = min(self.cursor_position + 1, self.width - 2)
         self.stdscr.move(screen_line, cursor_x)
 
     # Just for arrows
@@ -232,6 +243,7 @@ class TextEditor:
     def automation(self):
         if len(self.length) == 0:
             self.length = [""]
+            self.line_types = ["soft"]  # track line source
 
     # When the page size has finished scroll up
     def shift_text(self):
@@ -254,7 +266,7 @@ class TextEditor:
                 self.stdscr.addstr(screen_line, 1, line[:self.width - 2])
 
         # Adjust current_line to stay within visible range
-        self.current_line = len(self.length) - 1
+        # self.current_line = len(self.length) - 1
         self.prev_line_count = total_lines
 
     # We should finally save the text file in any extension
@@ -359,9 +371,5 @@ class TextEditor:
 
     def open_file(self):
         pass
-
-
-        
-        
 
 
