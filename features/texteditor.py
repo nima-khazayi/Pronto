@@ -14,6 +14,7 @@ class TextEditor:
         self.height, self.width = self.stdscr.getmaxyx()
         self.prev_line_count = 1
 
+    # Main running function
     def run(self):
         self.stdscr.clear()
         self.stdscr.refresh()
@@ -25,9 +26,7 @@ class TextEditor:
             self.stdscr.addstr(6, 2, "     ---------------------------      ")
             self.shift_text()
             self.movement()
-            if self.current_line == self.height - 3:
-                self.enter()
-
+            
             key = self.stdscr.getch()
             if self.handle_input(key):
                 break
@@ -35,6 +34,7 @@ class TextEditor:
             self.automation()
             self.stdscr.refresh()
 
+    # Displaying function
     def display_text(self, string=None):
         if string is None:
             string = self.length
@@ -43,6 +43,7 @@ class TextEditor:
             for char in (string[i]):
                 self.stdscr.addstr(self.current_line, self.cursor_position, char)
 
+    # Function to handle key inputs
     def handle_input(self, key):
         if key == 27:
             return True
@@ -88,6 +89,7 @@ class TextEditor:
         self.stdscr.refresh()
         self.movement()
 
+    # Removing function using backspace
     def remove(self):
         line_index = self.current_line
 
@@ -130,6 +132,7 @@ class TextEditor:
         self.shift_text()
         self.movement()
 
+    # Function to redraw the whole page
     def redraw_text(self):
         current_line_count = len(self.length)
         text_start_line = 8
@@ -142,6 +145,7 @@ class TextEditor:
                 self.stdscr.addstr(8 + i, 1, padded_line[:self.width - 1])
         self.prev_line_count = current_line_count
 
+    # Entering function, new lines and even spliting lines
     def enter(self):
         self.length.append("")
 
@@ -156,53 +160,54 @@ class TextEditor:
             
 
         self.line_types.append("hard")
-        if self.current_line == self.height - 3:
-            self.current_line = len(self.length) - 1  # buffer index
+        # if self.current_line == self.height - 3:
+            # self.current_line = len(self.length) - 1  # buffer index
 
-        else:
-            self.current_line += 1
+        # else:
+        self.current_line += 1
 
         self.cursor_position = 0
         self.shift_text()
         self.movement()
         self.stdscr.refresh()
 
+    # Moving around the text file
     def arrows(self, key):
-
         if key == curses.KEY_UP:
             if self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
-                self.movement()
+                self.cursor()
 
         elif key == curses.KEY_DOWN:
             if self.current_line < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = min(self.cursor_position, len(self.length[self.current_line]))
-                self.movement()
+                self.cursor()
 
         elif key == curses.KEY_LEFT:
             if self.cursor_position > 0:
                 self.cursor_position -= 1
-                self.movement()
+                self.cursor()
 
             elif self.current_line > 8:
                 self.current_line -= 1
                 self.cursor_position = len(self.length[self.current_line])
-                self.movement()
+                self.cursor()
 
         elif key == curses.KEY_RIGHT:
             line_len = len(self.length[self.current_line])
 
             if self.cursor_position < line_len:
                 self.cursor_position += 1
-                self.movement()
+                self.cursor()
 
             elif self.current_line < len(self.length) - 1:
                 self.current_line += 1
                 self.cursor_position = 0
-                self.movement()
+                self.cursor()
 
+    # Always should be in the right place to type
     def movement(self):
         self.height, self.width = self.stdscr.getmaxyx()
         text_start_line = 8
@@ -219,12 +224,16 @@ class TextEditor:
         cursor_x = min(self.cursor_position + 1, self.width - 1)
         self.stdscr.move(screen_line, cursor_x)
 
+    # Just for arrows
+    def cursor(self):
+        self.stdscr.move(self.current_line, self.cursor_position + 1)
 
+    # Never let the text gets empty
     def automation(self):
         if len(self.length) == 0:
             self.length = [""]
 
-
+    # When the page size has finished scroll up
     def shift_text(self):
         self.height, self.width = self.stdscr.getmaxyx()
         text_start_line = 8
@@ -248,68 +257,105 @@ class TextEditor:
         self.current_line = len(self.length) - 1
         self.prev_line_count = total_lines
 
-
+    # We should finally save the text file in any extension
     def save_file(self):
 
-        filename = ""
-        curses.start_color()
-        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        self.stdscr.addstr(self.height - 2, 0, "Enter your file name -> ", curses.color_pair(1))
-        self.stdscr.move(self.height - 2, 24)
-        while True:
-            key = self.stdscr.getch()
-            
-            if key in (10, curses.KEY_ENTER):
-                with open(filename, "w") as file:
-                    counter = 0
-                    for line in self.length:
-                        self.text += line
-                        counter += 1
-                        if counter != len(self.length):
-                            self.text += "\n"
-                    file.write(self.text)
-                    break
+        try:
+            filename = ""
+            curses.start_color()
+            curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+            self.stdscr.addstr(self.height - 2, 0, "Enter your file name -> ", curses.color_pair(1))
+            self.stdscr.move(self.height - 2, 24)
+            while True:
+                key = self.stdscr.getch()
+                
+                if key in (10, curses.KEY_ENTER):
+                    with open(filename, "w") as file:
+                        counter = 0
+                        for line in self.length:
+                            self.text += line
+                            counter += 1
+                            if counter != len(self.length):
+                                self.text += "\n"
+                        file.write(self.text)
+                        break
 
-            elif key in (127, curses.KEY_BACKSPACE):
-                if self.cursor_position == 24:
-                    pass
+                elif key in (127, curses.KEY_BACKSPACE):
+                    if self.cursor_position == 24:
+                        pass
+                    
+                    elif self.cursor_position - 24 == len(filename):
+                        filename = filename[:-1]
+                        self.stdscr.move(self.height - 2, 24)
+                        self.stdscr.clrtoeol()
+                        self.stdscr.refresh()
+                        for i in range(len(filename)):
+                            self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
+                        self.cursor_position = 24 + len(filename)
 
-            elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
-                if key == curses.KEY_UP or key == curses.KEY_DOWN:
-                    pass
+                    else:
+                        filename = filename[:self.cursor_position - 25] + filename[self.cursor_position - 24:]
 
-                elif key == curses.KEY_LEFT and self.cursor_position == 24:
-                    pass
+                        self.stdscr.move(self.height - 2, 24)
+                        self.stdscr.clrtoeol()
+                        self.stdscr.refresh()
 
-                elif key == curses.KEY_RIGHT and self.cursor_position == 24 + len(filename):
-                    pass
-
-                else:
-                    if key == curses.KEY_LEFT:
+                        for i in range(len(filename)):
+                            self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
                         self.cursor_position -= 1
                         self.stdscr.move(self.height - 2, self.cursor_position)
 
-                    elif key == curses.KEY_RIGHT:
-                        self.cursor_position += 1
-                        self.stdscr.move(self.height - 2, self.cursor_position)
+                elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
+                    if key == curses.KEY_UP or key == curses.KEY_DOWN:
+                        pass
 
-            else:
-                filename += chr(key)
-                self.current_line = self.height - 2
-                self.cursor_position = 24
-                for i in range(len(filename)):
-                    self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
-                self.cursor_position = 24 + len(filename)
+                    elif key == curses.KEY_LEFT and self.cursor_position == 24:
+                        pass
 
-        
-        self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
-        self.stdscr.refresh()
-        time.sleep(1.5)
-        self.stdscr.move(self.height - 2, 0)
-        self.stdscr.clrtoeol()
-        self.redraw_text()
-        self.stdscr.refresh()
-        self.cursor_position = 0
+                    elif key == curses.KEY_RIGHT and self.cursor_position == 24 + len(filename):
+                        pass
+
+                    else:
+                        if key == curses.KEY_LEFT:
+                            self.cursor_position -= 1
+                            self.stdscr.move(self.height - 2, self.cursor_position)
+
+                        elif key == curses.KEY_RIGHT:
+                            self.cursor_position += 1
+                            self.stdscr.move(self.height - 2, self.cursor_position)
+
+                else:
+                    self.stdscr.move(self.height - 2, 24)
+                    self.stdscr.clrtoeol()
+                    
+                    filename = filename[:self.cursor_position - 24] + chr(key) + filename[self.cursor_position - 24:]
+                    self.stdscr.refresh()
+                    
+                    for i in range(len(filename)):
+                        self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
+                    self.cursor_position = 24 + len(filename)
+                    self.stdscr.move(self.height - 2, self.cursor_position)
+
+            
+            self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
+            self.stdscr.refresh()
+            time.sleep(1.5)
+            self.stdscr.move(self.height - 2, 0)
+            self.stdscr.clrtoeol()
+            self.redraw_text()
+            self.stdscr.refresh()
+            self.cursor_position = 0
+
+        except Exception:
+            self.stdscr.addstr(self.height - 2, 0, "File has not been saved!", curses.color_pair(1))
+            self.stdscr.refresh()
+            time.sleep(1.5)
+            self.stdscr.move(self.height - 2, 0)
+            self.stdscr.clrtoeol()
+            self.redraw_text()
+            self.stdscr.refresh()
+            self.cursor_position = 0
+
 
     def open_file(self):
         pass
