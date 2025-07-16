@@ -67,15 +67,26 @@ class TextEditor:
 
         else:   
             if len(self.length[self.current_line][self.cursor_position:]) > 0:
-                if len(self.length[self.current_line]) + 2 >= self.width:
+                if len(self.length[self.current_line]) + 2 > self.width:
                     # We should check if we are at last line or not,
-                    # if not we should check if the next line has enough space or not,
-                    # if not then check if it's soft or not
+                    if self.current_line >= len(self.length) - 1:
+                        self.length.append("")
+                        self.line_types.append("soft")
+                        # if not we should check if the next line has enough space or not,
+                        if len(self.length[self.current_line + 1]) + 2 != self.width:
+                            # if not then check if it's soft or not
+                            self.length.pop()
+                            self.line_types.pop()
+
+                        else:
+                            self.length.append("")
+                            self.line_types.append("soft")
                     # if not create another empty line
-                    self.length.append("")
-                    self.line_types.append("soft")
-                    self.length[-1] += self.length[-2][-1]
-                    self.length[-2] = self.length[-2][:-1]
+                    #else:
+                        #self.length.append("")
+                        #self.line_types.append("soft")
+                    self.length[self.current_line + 1] = self.length[self.current_line][-1] + self.length[self.current_line + 1]
+                    self.length[self.current_line] = self.length[self.current_line][:-1]
                 self.length[self.current_line] = self.length[self.current_line][:self.cursor_position] + chr(key) + self.length[self.current_line][self.cursor_position:]
 
             else:
@@ -84,7 +95,8 @@ class TextEditor:
                     self.line_types.append("soft")
                     self.current_line += 1
                     self.cursor_position = 0
-                self.length[self.current_line] += chr(key)
+                    
+                self.length[self.current_line] = self.length[self.current_line][:self.cursor_position] + chr(key) + self.length[self.current_line][self.cursor_position:]
 
             self.cursor_position += 1
             self.shift_text()
