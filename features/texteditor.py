@@ -271,7 +271,27 @@ class TextEditor:
                     break
 
             elif key in (127, curses.KEY_BACKSPACE):
-                pass
+                if self.cursor_position == 24:
+                    pass
+
+            elif key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
+                if key == curses.KEY_UP or key == curses.KEY_DOWN:
+                    pass
+
+                elif key == curses.KEY_LEFT and self.cursor_position == 24:
+                    pass
+
+                elif key == curses.KEY_RIGHT and self.cursor_position == 24 + len(filename):
+                    pass
+
+                else:
+                    if key == curses.KEY_LEFT:
+                        self.cursor_position -= 1
+                        self.stdscr.move(self.height - 2, self.cursor_position)
+
+                    elif key == curses.KEY_RIGHT:
+                        self.cursor_position += 1
+                        self.stdscr.move(self.height - 2, self.cursor_position)
 
             else:
                 filename += chr(key)
@@ -279,6 +299,7 @@ class TextEditor:
                 self.cursor_position = 24
                 for i in range(len(filename)):
                     self.stdscr.addstr(self.height - 2, 24 + i, filename[i], curses.color_pair(1))
+                self.cursor_position = 24 + len(filename)
 
         
         self.stdscr.addstr(self.height - 2, 0, "File has been saved!", curses.color_pair(1))
@@ -288,6 +309,7 @@ class TextEditor:
         self.stdscr.clrtoeol()
         self.redraw_text()
         self.stdscr.refresh()
+        self.cursor_position = 0
 
     def open_file(self):
         pass
